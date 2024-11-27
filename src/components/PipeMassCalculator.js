@@ -1,13 +1,29 @@
-import React, { useState } from 'react';
-import { TextField, Button, ButtonGroup, Typography, Box, MenuItem, Select, FormControl, InputLabel, Grid, Card, CardContent, Paper } from '@mui/material';
+import React, { useState } from "react";
+import {
+  TextField,
+  ButtonGroup,
+  Card,
+  CardContent,
+  Paper,
+  Button,
+  Box,
+  Typography,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+} from "@mui/material";
 
+// Material data with their densities (kg/m³)
 const materials = [
-  { name: 'Steel', density: 7850 }, // kg/m³
-  { name: 'Aluminum', density: 2700 },
-  { name: 'Copper', density: 8960 },
-  { name: 'PVC', density: 1380 },
+  { name: "Steel", density: 7850 }, // kg/m³
+  { name: "Aluminum", density: 2700 },
+  { name: "Copper", density: 8960 },
+  { name: "PVC", density: 1380 },
 ];
 
+// DN to diameter mapping (in mm)
 const dnToDiameter = {
   DN10: 17.2,
   DN15: 21.3,
@@ -21,105 +37,169 @@ const dnToDiameter = {
   DN100: 114.3,
   DN125: 139.7,
   DN150: 168.3,
+  DN200: 219.1,
+  DN250: 273.0,
+  DN300: 323.9,
+  DN350: 355.6,
+  DN400: 406.4,
+  DN450: 457.2,
+  DN500: 508.0,
+  DN600: 610.0,
+  DN700: 711.0,
+  DN800: 812.8,
+  DN900: 914.4,
+  DN1000: 1016.0,
+  DN1200: 1219.0,
 };
 
+// Helper function to convert units to millimeters
 const convertToMillimeters = (value, unit) => {
   switch (unit) {
-    case 'mm': return value;
-    case 'cm': return value * 10;
-    case 'm': return value * 1000;
-    default: return value;
+    case "mm":
+      return value;
+    case "cm":
+      return value * 10;
+    case "m":
+      return value * 1000;
+    default:
+      return value;
   }
 };
 
+// Helper function to convert millimeters to other units
 const convertFromMillimeters = (value, unit) => {
   switch (unit) {
-    case 'mm': return value;
-    case 'cm': return value / 10;
-    case 'm': return value / 1000;
-    default: return value;
+    case "mm":
+      return value;
+    case "cm":
+      return value / 10;
+    case "m":
+      return value / 1000;
+    default:
+      return value;
   }
 };
 
+// Main component for calculating pipe mass
 const PipeMassCalculator = () => {
-  const [diameter, setDiameter] = useState('');
-  const [radius, setRadius] = useState('');
-  const [length, setLength] = useState('');
-  const [thickness, setThickness] = useState('');
+  // State variables for pipe properties and calculations
+  const [diameter, setDiameter] = useState("");
+  const [radius, setRadius] = useState("");
+  const [length, setLength] = useState("");
+  const [thickness, setThickness] = useState("");
   const [density, setDensity] = useState(materials[0].density);
   const [selectedMaterial, setSelectedMaterial] = useState(materials[0].name);
-  const [unit, setUnit] = useState('mm');
-  const [measureType, setMeasureType] = useState('diameter');
+  const [unit, setUnit] = useState("mm");
+  const [measureType, setMeasureType] = useState("diameter");
   const [mass, setMass] = useState(null);
-  const [selectedDN, setSelectedDN] = useState('');
-  const [error, setError] = useState(null);
+  const [selectedDN, setSelectedDN] = useState("");
+  const [error, setError] = useState("");
+  // Helper function to replace commas with dots in numbers
+  const replaceCommaWithDot = (value) => {
+    return value.replace(",", ".");
+  };
 
+  // Function to calculate the mass of the pipe
   const calculateMass = () => {
-    const size = parseFloat(measureType === 'radius' ? radius * 2 : diameter);
+    const size = parseFloat(measureType === "radius" ? radius * 2 : diameter);
     const sizeInMeters = convertToMillimeters(size, unit) / 1000; // Millimeters to meters
     const l = convertToMillimeters(parseFloat(length), unit) / 1000; // Millimeters to meters
     const t = convertToMillimeters(parseFloat(thickness), unit) / 1000; // Millimeters to meters
     const rho = parseFloat(density); // Density in kg/m³
+    const radiusValue = parseFloat(radius);
+    const thicknessValue = parseFloat(thickness);
+
+    // Check if thickness is valid (should not be greater than or equal to the radius)
+    if (thicknessValue >= radiusValue) {
+      setError("Thickness cannot be equal to or greater than radius.");
+      return; // Stop calculation if there's an error
+    }
+
+    // If no error, reset error and proceed with mass calculation
+    setError(null);
 
     if ([sizeInMeters, l, t, rho].some(isNaN)) {
-      setError('Please enter valid numerical values.');
+      setError("Please enter valid numerical values.");
       return;
     }
     setError(null);
 
     const d = sizeInMeters; // Diameter in meters
-    const volume = Math.PI * ((d / 2) ** 2 - ((d / 2) - t) ** 2) * l; // Volume in m³
+    const volume = Math.PI * ((d / 2) ** 2 - (d / 2 - t) ** 2) * l; // Volume in m³
     const calculatedMass = volume * rho; // Mass in kg
 
     setMass(calculatedMass.toFixed(2)); // Set mass with 2 decimal precision
   };
 
+  // Function to handle material selection change
   const handleMaterialChange = (event) => {
-    const material = materials.find(mat => mat.name === event.target.value);
+    const material = materials.find((mat) => mat.name === event.target.value);
     setSelectedMaterial(material.name);
     setDensity(material.density);
   };
 
+  // Function to handle DN size selection change
   const handleDNChange = (event) => {
     const dnValue = event.target.value;
-    const diameterInCurrentUnit = convertFromMillimeters(dnToDiameter[dnValue], unit);
+    const diameterInCurrentUnit = convertFromMillimeters(
+      dnToDiameter[dnValue],
+      unit
+    );
     setSelectedDN(dnValue);
     setDiameter(diameterInCurrentUnit.toString());
     setRadius((diameterInCurrentUnit / 2).toString());
   };
 
+  // Function to handle diameter input change
   const handleDiameterChange = (event) => {
-    const diameterValue = parseFloat(event.target.value);
+    const diameterValue = replaceCommaWithDot(event.target.value);
     if (!isNaN(diameterValue)) {
-      setDiameter(diameterValue.toString());
-      setRadius((diameterValue / 2).toString());
+      setDiameter(diameterValue);
+      setRadius((parseFloat(diameterValue) / 2).toString());
     } else {
-      setDiameter('');
-      setRadius('');
-    }
-  };
-  
-  const handleRadiusChange = (event) => {
-    const radiusValue = parseFloat(event.target.value);
-    if (!isNaN(radiusValue)) {
-      setRadius(radiusValue.toString());
-      setDiameter((radiusValue * 2).toString());
-    } else {
-      setRadius('');
-      setDiameter('');
+      setDiameter("");
+      setRadius("");
     }
   };
 
+  // Function to handle radius input change
+  const handleRadiusChange = (event) => {
+    const radiusValue = replaceCommaWithDot(event.target.value);
+    if (!isNaN(radiusValue)) {
+      setRadius(radiusValue);
+      setDiameter((parseFloat(radiusValue) * 2).toString());
+    } else {
+      setRadius("");
+      setDiameter("");
+    }
+  };
+
+  // Function to handle unit change (mm, cm, m)
   const handleUnitChange = (newUnit) => {
-    const diameterInMillimeters = convertToMillimeters(parseFloat(diameter), unit);
-    const convertedDiameter = convertFromMillimeters(diameterInMillimeters, newUnit);
-  
+    const diameterInMillimeters = convertToMillimeters(
+      parseFloat(diameter),
+      unit
+    );
+    const convertedDiameter = convertFromMillimeters(
+      diameterInMillimeters,
+      newUnit
+    );
+
     const lengthInMillimeters = convertToMillimeters(parseFloat(length), unit);
-    const convertedLength = convertFromMillimeters(lengthInMillimeters, newUnit);
-  
-    const thicknessInMillimeters = convertToMillimeters(parseFloat(thickness), unit);
-    const convertedThickness = convertFromMillimeters(thicknessInMillimeters, newUnit);
-  
+    const convertedLength = convertFromMillimeters(
+      lengthInMillimeters,
+      newUnit
+    );
+
+    const thicknessInMillimeters = convertToMillimeters(
+      parseFloat(thickness),
+      unit
+    );
+    const convertedThickness = convertFromMillimeters(
+      thicknessInMillimeters,
+      newUnit
+    );
+
     setUnit(newUnit);
     setDiameter(convertedDiameter.toString());
     setRadius((convertedDiameter / 2).toString());
@@ -127,54 +207,73 @@ const PipeMassCalculator = () => {
     setThickness(convertedThickness.toString());
   };
 
+  // Function to handle measure type change (Diameter vs Radius)
   const handleMeasureTypeChange = (type) => {
-    if (type === 'radius' && measureType === 'diameter') {
-      // Vaihdetaan Diameter -> Radius
+    if (type === "radius" && measureType === "diameter") {
+      // Switch from Diameter to Radius
       const currentDiameter = parseFloat(diameter);
       if (!isNaN(currentDiameter)) {
         setRadius((currentDiameter / 2).toString());
       }
-    } else if (type === 'diameter' && measureType === 'radius') {
-      // Vaihdetaan Radius -> Diameter
+    } else if (type === "diameter" && measureType === "radius") {
+      // Switch from Radius to Diameter
       const currentRadius = parseFloat(radius);
       if (!isNaN(currentRadius)) {
         setDiameter((currentRadius * 2).toString());
       }
     }
-    setMeasureType(type); // Päivitetään mittatyyppi
+    setMeasureType(type); // Update measure type
   };
-  
 
   return (
     <Grid container spacing={2}>
+      {/* Left section for input fields */}
       <Grid item xs={12} md={6}>
         <Box>
           <Grid container spacing={2}>
+            {/* Unit selection buttons (mm, cm, m) */}
             <Grid item xs={12}>
               <ButtonGroup fullWidth variant="contained">
-                <Button color={unit === 'mm' ? 'primary' : 'default'} onClick={() => handleUnitChange('mm')}>Millimeters</Button>
-                <Button color={unit === 'cm' ? 'primary' : 'default'} onClick={() => handleUnitChange('cm')}>Centimeters</Button>
-                <Button color={unit === 'm' ? 'primary' : 'default'} onClick={() => handleUnitChange('m')}>Meters</Button>
+                <Button
+                  color={unit === "mm" ? "primary" : "default"}
+                  onClick={() => handleUnitChange("mm")}
+                >
+                  Millimeters
+                </Button>
+                <Button
+                  color={unit === "cm" ? "primary" : "default"}
+                  onClick={() => handleUnitChange("cm")}
+                >
+                  Centimeters
+                </Button>
+                <Button
+                  color={unit === "m" ? "primary" : "default"}
+                  onClick={() => handleUnitChange("m")}
+                >
+                  Meters
+                </Button>
               </ButtonGroup>
             </Grid>
+
+            {/* Measure type selection (Diameter or Radius) */}
             <Grid item xs={12}>
-  <ButtonGroup fullWidth variant="contained">
-    <Button
-      color={measureType === 'diameter' ? 'primary' : 'default'}
-      onClick={() => handleMeasureTypeChange('diameter')}
-    >
-      Diameter
-    </Button>
-    <Button
-      color={measureType === 'radius' ? 'primary' : 'default'}
-      onClick={() => handleMeasureTypeChange('radius')}
-    >
-      Radius
-    </Button>
-  </ButtonGroup>
-</Grid>
+              <ButtonGroup fullWidth variant="contained">
+                <Button
+                  color={measureType === "diameter" ? "primary" : "default"}
+                  onClick={() => handleMeasureTypeChange("diameter")}
+                >
+                  Diameter
+                </Button>
+                <Button
+                  color={measureType === "radius" ? "primary" : "default"}
+                  onClick={() => handleMeasureTypeChange("radius")}
+                >
+                  Radius
+                </Button>
+              </ButtonGroup>
+            </Grid>
 
-
+            {/* DN Size dropdown */}
             <Grid item xs={12} sm={6}>
               <FormControl fullWidth variant="outlined">
                 <InputLabel>DN Size</InputLabel>
@@ -191,33 +290,51 @@ const PipeMassCalculator = () => {
                 </Select>
               </FormControl>
             </Grid>
+
+            {/* Diameter or Radius input field */}
             <Grid item xs={12} sm={6}>
-            <TextField
-    label={measureType === 'diameter' ? `Diameter (${unit})` : `Radius (${unit})`}
-    variant="outlined"
-    fullWidth
-    value={measureType === 'diameter' ? diameter : radius}
-    onChange={measureType === 'diameter' ? handleDiameterChange : handleRadiusChange}
-  />
+              <TextField
+                label={
+                  measureType === "diameter"
+                    ? `Diameter (${unit})`
+                    : `Radius (${unit})`
+                }
+                variant="outlined"
+                fullWidth
+                value={measureType === "diameter" ? diameter : radius}
+                onChange={
+                  measureType === "diameter"
+                    ? handleDiameterChange
+                    : handleRadiusChange
+                }
+              />
             </Grid>
+
+            {/* Length input */}
             <Grid item xs={12}>
               <TextField
                 label={`Length (${unit})`}
                 variant="outlined"
                 fullWidth
                 value={length}
-                onChange={(e) => setLength(e.target.value)}
+                onChange={(e) => setLength(replaceCommaWithDot(e.target.value))}
               />
             </Grid>
+
+            {/* Thickness input */}
             <Grid item xs={12}>
               <TextField
                 label={`Thickness (${unit})`}
                 variant="outlined"
                 fullWidth
                 value={thickness}
-                onChange={(e) => setThickness(e.target.value)}
+                onChange={(e) =>
+                  setThickness(replaceCommaWithDot(e.target.value))
+                }
               />
             </Grid>
+
+            {/* Material density dropdown */}
             <Grid item xs={12}>
               <FormControl fullWidth variant="outlined">
                 <InputLabel>Material Density</InputLabel>
@@ -235,11 +352,22 @@ const PipeMassCalculator = () => {
               </FormControl>
             </Grid>
           </Grid>
+
+          {/* Button to trigger mass calculation */}
           <Box my={2}>
             <Button variant="contained" color="primary" onClick={calculateMass}>
               Calculate Mass
             </Button>
           </Box>
+
+          {/* Error message display */}
+          {error && (
+            <Typography variant="body2" color="error" align="center">
+              {error}
+            </Typography>
+          )}
+
+          {/* Mass result display */}
           {mass !== null && (
             <Card sx={{ marginTop: 3 }}>
               <CardContent>
@@ -254,12 +382,19 @@ const PipeMassCalculator = () => {
           )}
         </Box>
       </Grid>
+
+      {/* Right section with pipe dimensions illustration */}
       <Grid item xs={12} md={6}>
         <Paper elevation={3} sx={{ padding: 2 }}>
           <Typography variant="h6">Pipe Dimensions</Typography>
-          <img src={`${process.env.PUBLIC_URL}/images/pipe-dimensions.png`} alt="Pipe Dimensions" style={{ width: '100%', height: 'auto' }} />
+          <img
+            src={`${process.env.PUBLIC_URL}/images/pipe-dimensions.png`}
+            alt="Pipe Dimensions"
+            style={{ width: "100%", height: "auto" }}
+          />
           <Typography variant="body1">
-            The image on the right illustrates the pipe dimensions: diameter, length, and wall thickness.
+            The image on the right illustrates the pipe dimensions: diameter,
+            length, and wall thickness.
           </Typography>
         </Paper>
       </Grid>
