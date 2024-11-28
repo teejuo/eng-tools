@@ -93,7 +93,6 @@ const PipeMassCalculator = () => {
   const [measureType, setMeasureType] = useState("diameter");
   const [mass, setMass] = useState(null);
   const [selectedDN, setSelectedDN] = useState("");
-  const [error, setError] = useState("");
   // Helper function to replace commas with dots in numbers
   const replaceCommaWithDot = (value) => {
     return value.replace(",", ".");
@@ -106,24 +105,6 @@ const PipeMassCalculator = () => {
     const l = convertToMillimeters(parseFloat(length), unit) / 1000; // Millimeters to meters
     const t = convertToMillimeters(parseFloat(thickness), unit) / 1000; // Millimeters to meters
     const rho = parseFloat(density); // Density in kg/m³
-    const radiusValue = parseFloat(radius);
-    const thicknessValue = parseFloat(thickness);
-
-    // Check if thickness is valid (should not be greater than or equal to the radius)
-    if (thicknessValue >= radiusValue) {
-      setError("Thickness cannot be equal to or greater than radius.");
-      return; // Stop calculation if there's an error
-    }
-
-    // If no error, reset error and proceed with mass calculation
-    setError(null);
-
-    if ([sizeInMeters, l, t, rho].some(isNaN)) {
-      setError("Please enter valid numerical values.");
-      return;
-    }
-    setError(null);
-
     const d = sizeInMeters; // Diameter in meters
     const volume = Math.PI * ((d / 2) ** 2 - (d / 2 - t) ** 2) * l; // Volume in m³
     const calculatedMass = volume * rho; // Mass in kg
@@ -152,26 +133,16 @@ const PipeMassCalculator = () => {
 
   // Function to handle diameter input change
   const handleDiameterChange = (event) => {
-    const diameterValue = replaceCommaWithDot(event.target.value);
-    if (!isNaN(diameterValue)) {
-      setDiameter(diameterValue);
-      setRadius((parseFloat(diameterValue) / 2).toString());
-    } else {
-      setDiameter("");
-      setRadius("");
-    }
+    const diameterValue = replaceCommaWithDot(event.target.value); // Korvataan pilkut pisteillä
+    setDiameter(diameterValue); // Asetetaan halkaisijan arvo
+    setRadius((parseFloat(diameterValue) / 2).toString()); // Päivitetään säde automaattisesti
   };
 
   // Function to handle radius input change
   const handleRadiusChange = (event) => {
-    const radiusValue = replaceCommaWithDot(event.target.value);
-    if (!isNaN(radiusValue)) {
-      setRadius(radiusValue);
-      setDiameter((parseFloat(radiusValue) * 2).toString());
-    } else {
-      setRadius("");
-      setDiameter("");
-    }
+    const radiusValue = replaceCommaWithDot(event.target.value); // Korvataan pilkut pisteillä
+    setRadius(radiusValue); // Asetetaan säteen arvo
+    setDiameter((parseFloat(radiusValue) * 2).toString()); // Päivitetään halkaisija automaattisesti
   };
 
   // Function to handle unit change (mm, cm, m)
@@ -359,13 +330,6 @@ const PipeMassCalculator = () => {
               Calculate Mass
             </Button>
           </Box>
-
-          {/* Error message display */}
-          {error && (
-            <Typography variant="body2" color="error" align="center">
-              {error}
-            </Typography>
-          )}
 
           {/* Mass result display */}
           {mass !== null && (
